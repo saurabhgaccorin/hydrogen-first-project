@@ -87,3 +87,46 @@ export const FEATURED_COLLECTION_FRAGMENT = `#graphql
     }
   }
 `;
+
+export const SLIDESHOW_QUERY_FRAGMENT = `#graphql
+  ${MEDIA_FRAGMENT}
+
+  fragment Slide on Metaobject{
+    id
+    desktopBanner : field(key:"desktop_banner"){
+      reference {
+        ...Media
+      }
+    }
+    mobileBanner : field(key:"mobile_banner"){
+      reference {
+        ...Media
+      }
+    }
+    title: field(key:"title"){
+      value
+    }
+    content: field(key:"content"){
+      value
+    }
+    button_text: field(key:"button_text"){
+      value
+    }
+    button_url: field(key:"button_url"){
+      value
+    }
+  }
+  fragment Slideshow on Metaobject{
+    id
+    field(key:"slide"){
+      key
+      value
+      references(first:100){
+        __typename
+        nodes{
+          ...Slide
+        }
+      }
+    }
+    
+}`;

@@ -4,10 +4,17 @@ import {Await, useLoaderData} from '@remix-run/react';
 import {AnalyticsPageType} from '@shopify/hydrogen';
 
 import {ProductSwimlane, FeaturedCollections, Hero} from '~/components';
-import {MEDIA_FRAGMENT, PRODUCT_CARD_FRAGMENT} from '~/data/fragments';
+import {
+  MEDIA_FRAGMENT,
+  PRODUCT_CARD_FRAGMENT,
+  SLIDESHOW_QUERY_FRAGMENT,
+} from '~/data/fragments';
 import {getHeroPlaceholder} from '~/lib/placeholders';
 import {seoPayload} from '~/lib/seo.server';
 import {routeHeaders} from '~/data/cache';
+import HomeCarousel, {
+  links as homeCarouselLinks,
+} from '~/components/HomeCarousel';
 
 export const headers = routeHeaders;
 
@@ -26,11 +33,13 @@ export async function loader({params, context}) {
   const {shop, hero} = await context.storefront.query(HOMEPAGE_SEO_QUERY, {
     variables: {handle: 'freestyle'},
   });
+  const homepage = await context.storefront.query(HOMEPAGE_QUERY);
 
   const seo = seoPayload.home();
 
   return defer({
     shop,
+    homepage,
     primaryHero: hero,
     // These different queries are separated to illustrate how 3rd party content
     // fetching can be optimized for both above and below the fold.
@@ -77,6 +86,7 @@ export async function loader({params, context}) {
 
 export default function Homepage() {
   const {
+    homepage,
     primaryHero,
     secondaryHero,
     tertiaryHero,
@@ -93,6 +103,14 @@ export default function Homepage() {
         <Hero {...primaryHero} height="full" top loading="eager" />
       )}
 
+      <HomeCarousel
+        data={
+          homepage?.metaobjects?.edges[0].node.slideshow.reference.field
+            .references.nodes
+        }
+        height="full"
+        top
+      />
       {featuredProducts && (
         <Suspense>
           <Await resolve={featuredProducts}>
@@ -239,3 +257,29 @@ export const FEATURED_COLLECTIONS_QUERY = `#graphql
     }
   }
 `;
+export const HOMEPAGE_QUERY = `#graphql
+  ${SLIDESHOW_QUERY_FRAGMENT}
+  query homepage($country: CountryCode, $language: LanguageCode)
+  @inContext(country: $country, language: $language){
+    metaobjects(type:"home_page",first:100){
+      edges{
+        node{
+          id
+          slideshow: field(key:"slideshow"){
+            key
+            type
+            __typename
+            reference{
+              __typename
+              ...Slideshow
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export function links() {
+  return [...homeCarouselLinks()];
+}
